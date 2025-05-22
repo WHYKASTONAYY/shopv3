@@ -56,7 +56,7 @@ from user import (
     handle_basket_discount_code_message,
     _show_crypto_choices_for_basket,
     handle_pay_single_item,
-    handle_confirm_pay as user_handle_confirm_pay, # Renamed import
+    handle_confirm_pay, # Direct import of the function
     # <<< ADDED Single Item Discount Flow Handlers from user.py >>>
     handle_apply_discount_single_pay,
     handle_skip_discount_single_pay,
@@ -201,7 +201,7 @@ def callback_query_router(func):
                 "refill": user.handle_refill,
                 "view_history": user.handle_view_history,
                 "apply_discount_start": user.apply_discount_start, "remove_discount": user.remove_discount,
-                "confirm_pay": user.user_handle_confirm_pay, # Renamed import
+                "confirm_pay": user.handle_confirm_pay, # <<< CORRECTED
                 "apply_discount_basket_pay": user.handle_apply_discount_basket_pay,
                 "skip_discount_basket_pay": user.handle_skip_discount_basket_pay,
                 # <<< ADDED Single Item Discount Flow Callbacks (from user.py) >>>
