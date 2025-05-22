@@ -10,6 +10,8 @@ from datetime import timedelta
 import threading # Added for Flask thread
 import json # Added for webhook processing
 from decimal import Decimal, ROUND_DOWN, ROUND_UP
+import hmac # For webhook signature verification
+import hashlib # For webhook signature verification
 
 # --- Telegram Imports ---
 from telegram import Update, BotCommand, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
@@ -54,7 +56,7 @@ from user import (
     handle_basket_discount_code_message,
     _show_crypto_choices_for_basket,
     handle_pay_single_item,
-    handle_confirm_pay as user_handle_confirm_pay, # Renamed
+    handle_confirm_pay as user_handle_confirm_pay, # Renamed import
     # <<< ADDED Single Item Discount Flow Handlers from user.py >>>
     handle_apply_discount_single_pay,
     handle_skip_discount_single_pay,
@@ -458,13 +460,14 @@ async def clear_expired_baskets_job_wrapper(context: ContextTypes.DEFAULT_TYPE):
 
 
 # --- Flask Webhook Routes ---
-def verify_nowpayments_signature(request_data, signature_header, secret_key):
+def verify_nowpayments_signature(request_data_bytes, signature_header, secret_key):
     if not secret_key or not signature_header:
         logger.warning("IPN Secret Key or signature header missing. Cannot verify webhook.")
         return False
     try:
-        raw_body = request.get_data()
-        ordered_data = json.dumps(json.loads(raw_body), sort_keys=True)
+        # Ensure request_data_bytes is used directly if it's already the raw body
+        # If you need to re-order, parse then re-serialize
+        ordered_data = json.dumps(json.loads(request_data_bytes), sort_keys=True, separators=(',', ':'))
         hmac_hash = hmac.new(secret_key.encode('utf-8'), ordered_data.encode('utf-8'), hashlib.sha512).hexdigest()
         return hmac.compare_digest(hmac_hash, signature_header)
     except Exception as e:
@@ -478,15 +481,35 @@ def nowpayments_webhook():
         logger.error("Webhook received but Telegram app or event loop not initialized.")
         return Response(status=503)
 
+    raw_body = request.get_data() # Get raw body once
     signature = request.headers.get('x-nowpayments-sig')
-    logger.warning(f"!!! NOWPayments signature verification is DISABLED BY CONFIGURATION !!! (Received Signature: {signature})")
 
-    if not request.is_json:
+    # Always log received signature and what would be expected for debugging
+    if NOWPAYMENTS_IPN_SECRET:
+        try:
+            temp_ordered_data = json.dumps(json.loads(raw_body), sort_keys=True, separators=(',', ':'))
+            expected_signature = hmac.new(NOWPAYMENTS_IPN_SECRET.encode('utf-8'), temp_ordered_data.encode('utf-8'), hashlib.sha512).hexdigest()
+            logger.info(f"NOWPayments IPN Received. Signature: {signature}. Expected (if verified): {expected_signature}")
+        except Exception as sig_calc_e:
+            logger.error(f"Error calculating expected signature for logging: {sig_calc_e}")
+
+    # Signature Verification (Only if secret is set)
+    if NOWPAYMENTS_IPN_SECRET:
+        if not verify_nowpayments_signature(raw_body, signature, NOWPAYMENTS_IPN_SECRET):
+            logger.error("Webhook signature verification FAILED. Request will be ignored.")
+            return Response("Signature verification failed", status=403)
+        logger.info("Webhook signature VERIFIED successfully.")
+    else:
+        logger.warning("!!! NOWPayments signature verification is DISABLED (NOWPAYMENTS_IPN_SECRET not set) !!!")
+
+
+    try:
+        data = json.loads(raw_body) # Parse JSON from raw body
+    except json.JSONDecodeError:
         logger.warning("Webhook received non-JSON request.")
-        return Response("Invalid Request", status=400)
+        return Response("Invalid Request: Not JSON", status=400)
 
-    data = request.get_json()
-    logger.info(f"NOWPayments IPN received (Verification Disabled): {json.dumps(data)}")
+    logger.info(f"NOWPayments IPN Data: {json.dumps(data)}") # Log the parsed data
 
     required_keys = ['payment_id', 'payment_status', 'pay_currency', 'actually_paid']
     if not all(key in data for key in required_keys):
@@ -509,7 +532,7 @@ def nowpayments_webhook():
             actually_paid_decimal = Decimal(str(actually_paid_str))
             if actually_paid_decimal <= 0:
                 logger.warning(f"Ignoring webhook for payment {payment_id} with zero 'actually_paid'.")
-                if status != 'confirmed':
+                if status != 'confirmed': # Only remove if not yet confirmed, might be a final "zero paid" update after other partials
                     asyncio.run_coroutine_threadsafe(asyncio.to_thread(remove_pending_deposit, payment_id, trigger="zero_paid"), main_loop)
                 return Response("Zero amount paid", status=200)
 
