@@ -2181,4 +2181,50 @@ async def handle_single_item_discount_code_message(update: Update, context: Cont
         context.user_data['basket_pay_discount_code'] = discount_code_to_use
         await _show_crypto_choices_for_basket(update, context, edit_message=False)
 
-# --- END OF FILE user.py ---
+# --- NEW: Handler to Ask for Discount Code in Single Item Pay Flow ---
+async def handle_apply_discount_single_pay(update: Update, context: ContextTypes.DEFAULT_TYPE, params=None):
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang, lang_data = _get_lang_data(context)
+
+    # Check if the single item payment context exists
+    if 'single_item_pay_snapshot' not in context.user_data or \
+       'single_item_pay_final_eur' not in context.user_data or \
+       'single_item_pay_back_params' not in context.user_data:
+        logger.error(f"User {user_id} clicked apply_discount_single_pay but single_item context is missing.")
+        await query.answer("Error: Payment context lost. Please try again.", show_alert=True)
+        # Attempt to go back to the product selection
+        back_params = context.user_data.get('single_item_pay_back_params')
+        if back_params:
+            # Ensure handle_product_selection is awaitable if called directly
+            return await handle_product_selection(update, context, params=back_params)
+        else: # Fallback if even back_params are lost
+            return await handle_shop(update, context)
+
+
+    context.user_data['state'] = 'awaiting_single_item_discount_code'
+    prompt_msg = lang_data.get("basket_pay_enter_discount", "Please enter discount code for this purchase:") # Re-use existing lang string
+    cancel_button_text = lang_data.get("cancel_button", "Cancel")
+    
+    # The cancel button should skip discount and go to crypto choices for single item
+    keyboard = [[InlineKeyboardButton(f"❌ {cancel_button_text}", callback_data="skip_discount_single_pay")]]
+
+    await query.edit_message_text(prompt_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=None)
+    await query.answer("Enter discount code in chat.")
+
+# --- NEW: Handler to Skip Discount in Single Item Pay Flow ---
+async def handle_skip_discount_single_pay(update: Update, context: ContextTypes.DEFAULT_TYPE, params=None):
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang, lang_data = _get_lang_data(context)
+
+    # Check if the single item payment context exists (copied from handle_apply_discount_single_pay for robustness)
+    if 'single_item_pay_snapshot' not in context.user_data or 'single_item_pay_final_eur' not in context.user_data or 'single_item_pay_back_params' not in context.user_data:
+        logger.error(f"User {user_id} clicked skip_discount_single_pay but single_item context is missing.")
+        await query.answer("Error: Payment context lost. Please try again.", show_alert=True)
+        back_params = context.user_data.get('single_item_pay_back_params'); return await handle_product_selection(update, context, params=back_params) if back_params else await handle_shop(update, context)
+
+    context.user_data['single_item_pay_discount_code'] = None
+    proceeding_msg = lang_data.get("proceeding_to_payment_answer", "Proceeding to payment options...")
+    await query.answer(proceeding_msg)
+    await _show_crypto_choices_for_basket(update, context, edit_message=True)
