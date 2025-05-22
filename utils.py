@@ -308,6 +308,7 @@ LANGUAGES = {
         "payment_cancelled_user": "Payment cancelled. Reserved items (if any) have been released.", # <<< NEW
         "payment_cancel_error": "Could not cancel payment (already processed or context lost).", # <<< NEW
         "cancel_payment_button": "Cancel Payment", # <<< NEW
+        "proceeding_to_payment_answer": "Proceeding to payment options...", # <<< ADDED
         "credit_overpayment_purchase": "✅ Your purchase was successful! Additionally, an overpayment of {amount} EUR has been credited to your balance. Your new balance is {new_balance} EUR.",
         "credit_underpayment_purchase": "ℹ️ Your purchase failed due to underpayment, but the received amount ({amount} EUR) has been credited to your balance. Your new balance is {new_balance} EUR.",
         "crypto_purchase_underpaid_credited": "⚠️ Purchase Failed: Underpayment detected. Amount needed was {needed_eur} EUR. Your balance has been credited with the received value ({paid_eur} EUR). Your items were not delivered.",
@@ -642,6 +643,7 @@ LANGUAGES = {
         "payment_cancelled_user": "Mokėjimas atšauktas. Rezervuotos prekės (jei buvo) paleistos.", # <<< NEW
         "payment_cancel_error": "Nepavyko atšaukti mokėjimo (jau apdorotas arba prarastas kontekstas).", # <<< NEW
         "cancel_payment_button": "Atšaukti mokėjimą", # <<< NEW
+        "proceeding_to_payment_answer": "Pereinama prie mokėjimo parinkčių...",
         "credit_overpayment_purchase": "✅ Jūsų pirkimas buvo sėkmingas! Papildomai, permoka {amount} EUR buvo įskaityta į jūsų balansą. Jūsų naujas balansas: {new_balance} EUR.",
         "credit_underpayment_purchase": "ℹ️ Jūsų pirkimas nepavyko dėl nepakankamo mokėjimo, tačiau gauta suma ({amount} EUR) buvo įskaityta į jūsų balansą. Jūsų naujas balansas: {new_balance} EUR.",
         "crypto_purchase_underpaid_credited": "⚠️ Pirkimas nepavyko: Aptiktas nepakankamas mokėjimas. Reikalinga suma buvo {needed_eur} EUR. Jūsų balansas buvo papildytas gauta verte ({paid_eur} EUR). Jūsų prekės nebuvo pristatytos.",
@@ -862,6 +864,7 @@ LANGUAGES = {
         "payment_cancelled_user": "Платеж отменен. Зарезервированные товары (если были) освобождены.", # <<< NEW
         "payment_cancel_error": "Не удалось отменить платеж (уже обработан или потерян контекст).", # <<< NEW
         "cancel_payment_button": "Отменить платеж", # <<< NEW
+        "proceeding_to_payment_answer": "Переход к вариантам оплаты...",
         "credit_overpayment_purchase": "✅ Ваша покупка была успешной! Дополнительно, переплата в размере {amount} EUR зачислена на ваш баланс. Ваш новый баланс: {new_balance} EUR.",
         "credit_underpayment_purchase": "ℹ️ Ваша покупка не удалась из-за недоплаты, но полученная сумма ({amount} EUR) зачислена на ваш баланс. Ваш новый баланс: {new_balance} EUR.",
         "crypto_purchase_underpaid_credited": "⚠️ Покупка не удалась: Обнаружена недоплата. Требовалась сумма {needed_eur} EUR. Ваш баланс пополнен на полученную сумму ({paid_eur} EUR). Ваши товары не были доставлены.",
